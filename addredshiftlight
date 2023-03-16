@@ -1,0 +1,49 @@
+import c4d
+from c4d import plugins, BaseObject
+from c4d.documents import GetActiveDocument
+
+PLUGIN_ID = 1040523  # Replace this number with a unique ID obtained from PluginCafe
+MSG_ID = 1040524  # Replace this number with another unique ID obtained from PluginCafe
+
+REDSHIFT_AREA_LIGHT_TYPE = 1036751
+
+class AddRenamedRedshiftLightCommand(plugins.CommandData):
+    def Execute(self, doc):
+        # Create a new Redshift Area light object
+        light = BaseObject(REDSHIFT_AREA_LIGHT_TYPE)
+        if light is None:
+            raise RuntimeError("Failed to create a Redshift light object.")
+
+        # Insert the light object into the active document
+        doc.InsertObject(light, None, None)
+
+        return True
+
+class UpdateLightNames(plugins.MessageData):
+    def CoreMessage(self, id, bc):
+        if id == c4d.EVMSG_CHANGE:
+            doc = GetActiveDocument()
+            if doc:
+                # Iterate over all objects in the document
+                for light in doc.GetObjects():
+                    # Check if the object is a Redshift Area light
+                    if light.GetType() == REDSHIFT_AREA_LIGHT_TYPE:
+                        # Get the light's position
+                        pos = light.GetAbsPos()
+                        x, y = pos.x, pos.y
+
+                        # Determine the light's X-Y location
+                        x_name = "Center" if abs(x) < 1.0 else ("Left" if x < 0 else "Right")
+                        y_name = "Center" if abs(y) < 1.0 else ("Bottom" if y < 0 else "Top")
+
+                        # Rename the light based on its X-Y position
+                        light.SetName(f"RS Light {x_name}-{y_name}")
+
+        return True
+
+if __name__ == "__main__":
+    okyn = plugins.RegisterCommandPlugin(id=PLUGIN_ID, str="Add Renamed Redshift Light", info=0, help="Adds a Redshift light", dat=AddRenamedRedshiftLightCommand(), icon=None)
+    msgyn = plugins.RegisterMessagePlugin(id=MSG_ID, str="Update Light Names", info=0, dat=UpdateLightNames())
+
+    if okyn and msgyn:
+        print("Add Renamed Redshift Light and Update Light Names plugins registered.")
